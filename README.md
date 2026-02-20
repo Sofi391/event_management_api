@@ -17,8 +17,6 @@ All endpoints can be explored and tested at: /api/docs/
 ---
 
 
----
-
 ## ✨ Project Overview
 
 The Event Management API is designed to simulate a real-world event booking system.  
@@ -96,9 +94,6 @@ Access via: /api/docs/
 
 ---
 
-
----
-
 ## ⚙️ Tech Stack
 
 ### Backend
@@ -108,7 +103,7 @@ Access via: /api/docs/
 - drf-spectacular / Swagger
 
 ### Database
-- SQLite (development)
+- MySql (development)
 - PostgreSQL-ready configuration
 
 ### Containerization
