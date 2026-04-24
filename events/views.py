@@ -23,7 +23,7 @@ from .permissions import (IsEventOrganizerOrReadOnly,CanCreateOrUpdateImage,
 
 # Create your views here.
 class EventViewSet(ModelViewSet):
-    queryset = Event.objects.all()
+    queryset = Event.objects.select_related('organizer').prefetch_related('tags', 'images', 'tickets', 'editors').all()
     serializer_class = EventSerializer
     lookup_field = 'slug'
 
@@ -71,7 +71,7 @@ class EventViewSet(ModelViewSet):
 
 
 class EventImageCreateView(CreateAPIView):
-    queryset = EventImages.objects.all()
+    queryset = EventImages.objects.select_related('event').all()
     serializer_class = EventImageSerializer
     permission_classes = [IsAuthenticated,CanCreateOrUpdateImage]
 
@@ -81,14 +81,14 @@ class EventImageCreateView(CreateAPIView):
 
 
 class EventImageDetailedView(RetrieveUpdateDestroyAPIView):
-    queryset = EventImages.objects.all()
+    queryset = EventImages.objects.select_related('event').all()
     serializer_class = EventImageSerializer
     lookup_field = 'pk'
     lookup_url_kwarg = 'id'
     permission_classes = [IsAuthenticated,CanCreateOrUpdateImage]
 
     def get_queryset(self):
-        return EventImages.objects.filter(event__slug=self.kwargs['event_slug'])
+        return EventImages.objects.select_related('event').filter(event__slug=self.kwargs['event_slug'])
 
 
 class EventEditorCreateView(UpdateAPIView):
@@ -132,7 +132,7 @@ class EventEditorDetailedView(RetrieveUpdateDestroyAPIView):
 
 
 class TicketsCreateView(CreateAPIView):
-    queryset = TicketType.objects.all()
+    queryset = TicketType.objects.select_related('event').all()
     serializer_class = TicketTypeSerializer
     permission_classes = [IsAuthenticated,CanCreateOrUpdateTickets]
 
@@ -147,13 +147,13 @@ class TicketsCreateView(CreateAPIView):
 
 
 class TicketDetailedView(RetrieveUpdateDestroyAPIView):
-    queryset = TicketType.objects.all()
+    queryset = TicketType.objects.select_related('event').all()
     serializer_class = TicketTypeSerializer
     lookup_field = 'pk'
     lookup_url_kwarg = 'id'
 
     def get_queryset(self):
-        return TicketType.objects.filter(event__slug=self.kwargs['event_slug'])
+        return TicketType.objects.select_related('event').filter(event__slug=self.kwargs['event_slug'])
 
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -164,7 +164,7 @@ class TicketDetailedView(RetrieveUpdateDestroyAPIView):
 
 
 class UserOrderCreateView(CreateAPIView):
-    queryset = UserOrder.objects.all()
+    queryset = UserOrder.objects.select_related('user').prefetch_related('items__ticket_type__event').all()
     serializer_class = UserOrderSerializer
 
     def perform_create(self, serializer):
@@ -175,7 +175,7 @@ class UserOrderListView(ListAPIView):
     serializer_class = UserOrderSerializer
 
     def get_queryset(self):
-        queryset = UserOrder.objects.filter(user=self.request.user)
+        queryset = UserOrder.objects.select_related('user').prefetch_related('items__ticket_type__event').filter(user=self.request.user)
 
         status = self.request.query_params.get('status')
         from_date = self.request.query_params.get('from')
@@ -195,11 +195,11 @@ class UserOrderRetrieveView(RetrieveAPIView):
     serializer_class = UserOrderSerializer
 
     def get_queryset(self):
-        return UserOrder.objects.filter(user=self.request.user)
+        return UserOrder.objects.select_related('user').prefetch_related('items__ticket_type__event').filter(user=self.request.user)
 
 
 class PaymentCreateView(UpdateAPIView):
-    queryset = UserOrder.objects.all()
+    queryset = UserOrder.objects.select_related('user').all()
     serializer_class = PaymentStatusSerializer
     permission_classes = [IsAuthenticated,UserCanPay]
 
@@ -223,7 +223,7 @@ class PaymentCreateView(UpdateAPIView):
 
 
 class CreateOrderItem(CreateAPIView):
-    queryset = OrderItem.objects.all()
+    queryset = OrderItem.objects.select_related('user_order__user', 'ticket_type__event').all()
     serializer_class = OrderItemSerializer
     permission_classes = [IsAuthenticated,CanCreateOrderItem]
 
@@ -243,7 +243,7 @@ class OrderItemListView(ListAPIView):
     def get_queryset(self):
         event_search = self.request.query_params.get('event', None)
 
-        queryset = OrderItem.objects.filter(user_order__user=self.request.user)
+        queryset = OrderItem.objects.select_related('user_order__user', 'ticket_type__event').filter(user_order__user=self.request.user)
         if event_search:
             queryset = queryset.filter(
                 Q(ticket_type__event__title__icontains=event_search) |
@@ -260,7 +260,7 @@ class OrderItemDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated,CanUpdateOrDeleteItems]
 
     def get_queryset(self):
-        return OrderItem.objects.filter(user_order__user=self.request.user)
+        return OrderItem.objects.select_related('user_order__user', 'ticket_type__event').filter(user_order__user=self.request.user)
 
 
 
