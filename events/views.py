@@ -18,10 +18,12 @@ from .permissions import (IsEventOrganizerOrReadOnly,CanCreateOrUpdateImage,
                           CanCreateOrUpdateTickets,UserCanPay,CanCreateOrderItem,
                           CanUpdateOrDeleteItems,CanCreateEditor,
                           )
+from .utils import log_view_performance, log_business_action, log_validation_error
 
 
 
 # Create your views here.
+@log_view_performance
 class EventViewSet(ModelViewSet):
     queryset = Event.objects.select_related('organizer').prefetch_related('tags', 'images', 'tickets', 'editors').all()
     serializer_class = EventSerializer
@@ -67,9 +69,11 @@ class EventViewSet(ModelViewSet):
 
 
     def perform_create(self, serializer):
+        log_business_action("EVENT_CREATED", f"Event: {serializer.validated_data.get('title', 'Unknown')}", self.request.user)
         return serializer.save(organizer=self.request.user)
 
 
+@log_view_performance
 class EventImageCreateView(CreateAPIView):
     queryset = EventImages.objects.select_related('event').all()
     serializer_class = EventImageSerializer
@@ -77,9 +81,11 @@ class EventImageCreateView(CreateAPIView):
 
     def perform_create(self, serializer):
         event = get_object_or_404(Event, slug=self.kwargs['event_slug'])
+        log_business_action("EVENT_IMAGE_CREATED", f"Event: {event.title}", self.request.user)
         return serializer.save(event=event)
 
 
+@log_view_performance
 class EventImageDetailedView(RetrieveUpdateDestroyAPIView):
     queryset = EventImages.objects.select_related('event').all()
     serializer_class = EventImageSerializer
@@ -91,6 +97,7 @@ class EventImageDetailedView(RetrieveUpdateDestroyAPIView):
         return EventImages.objects.select_related('event').filter(event__slug=self.kwargs['event_slug'])
 
 
+@log_view_performance
 class EventEditorCreateView(UpdateAPIView):
     serializer_class = EventEditorSerializer
     lookup_field = 'slug'
@@ -106,6 +113,7 @@ class EventEditorCreateView(UpdateAPIView):
         return serializer.update(event,serializer.validated_data)
 
 ##check this later!!
+@log_view_performance
 class EventEditorDetailedView(RetrieveUpdateDestroyAPIView):
     serializer_class = EventEditorDetailSerializer
     permission_classes = [IsAuthenticated, CanCreateEditor]
@@ -131,6 +139,7 @@ class EventEditorDetailedView(RetrieveUpdateDestroyAPIView):
         event.editors.remove(instance)
 
 
+@log_view_performance
 class TicketsCreateView(CreateAPIView):
     queryset = TicketType.objects.select_related('event').all()
     serializer_class = TicketTypeSerializer
@@ -143,9 +152,11 @@ class TicketsCreateView(CreateAPIView):
 
     def perform_create(self, serializer):
         event = get_object_or_404(Event, slug=self.kwargs['event_slug'])
+        log_business_action("TICKET_CREATED", f"Event: {event.title} | Ticket: {serializer.validated_data.get('name', 'Unknown')}", self.request.user)
         return serializer.save(event=event)
 
 
+@log_view_performance
 class TicketDetailedView(RetrieveUpdateDestroyAPIView):
     queryset = TicketType.objects.select_related('event').all()
     serializer_class = TicketTypeSerializer
@@ -163,14 +174,17 @@ class TicketDetailedView(RetrieveUpdateDestroyAPIView):
         return [permission() for permission in permission_classes]
 
 
+@log_view_performance
 class UserOrderCreateView(CreateAPIView):
     queryset = UserOrder.objects.select_related('user').prefetch_related('items__ticket_type__event').all()
     serializer_class = UserOrderSerializer
 
     def perform_create(self, serializer):
+        log_business_action("ORDER_CREATED", f"User: {self.request.user.username}", self.request.user)
         return serializer.save(user=self.request.user)
 
 
+@log_view_performance
 class UserOrderListView(ListAPIView):
     serializer_class = UserOrderSerializer
 
@@ -191,6 +205,7 @@ class UserOrderListView(ListAPIView):
         return queryset
 
 
+@log_view_performance
 class UserOrderRetrieveView(RetrieveAPIView):
     serializer_class = UserOrderSerializer
 
@@ -198,6 +213,7 @@ class UserOrderRetrieveView(RetrieveAPIView):
         return UserOrder.objects.select_related('user').prefetch_related('items__ticket_type__event').filter(user=self.request.user)
 
 
+@log_view_performance
 class PaymentCreateView(UpdateAPIView):
     queryset = UserOrder.objects.select_related('user').all()
     serializer_class = PaymentStatusSerializer
@@ -208,6 +224,7 @@ class PaymentCreateView(UpdateAPIView):
 
     def perform_update(self, serializer):
         order = serializer.save()
+        log_business_action("PAYMENT_PROCESSED", f"Order ID: {order.id} | Status: {order.status} | Amount: {order.total_price}", self.request.user)
 
         if order.status == "Paid":
             try:
@@ -218,10 +235,12 @@ class PaymentCreateView(UpdateAPIView):
                     recipient_list=[order.user.email],
                     fail_silently=False
                 )
+                log_business_action("PAYMENT_EMAIL_SENT", f"Order ID: {order.id} | Email: {order.user.email}", self.request.user)
             except Exception as e:
-                print(f"Unable to send email, {e}")
+                log_business_action("PAYMENT_EMAIL_FAILED", f"Order ID: {order.id} | Error: {str(e)}", self.request.user)
 
 
+@log_view_performance
 class CreateOrderItem(CreateAPIView):
     queryset = OrderItem.objects.select_related('user_order__user', 'ticket_type__event').all()
     serializer_class = OrderItemSerializer
@@ -232,11 +251,14 @@ class CreateOrderItem(CreateAPIView):
         ticket_type = get_object_or_404(TicketType, id=self.kwargs['ticket_id'])
 
         if user_order.items.exists() and user_order.items.first().ticket_type.event != ticket_type.event:
+            log_validation_error("CreateOrderItem", "The ticket is not for the same event as the other items in this order.", self.request.user)
             raise serializers.ValidationError("The ticket is not for the same event as the other items in this order.")
 
+        log_business_action("ORDER_ITEM_CREATED", f"Order: {user_order.id} | Ticket: {ticket_type.name} | Quantity: {serializer.validated_data.get('quantity', 'Unknown')}", self.request.user)
         return serializer.save(user_order=user_order, ticket_type=ticket_type)
 
 
+@log_view_performance
 class OrderItemListView(ListAPIView):
     serializer_class = OrderItemSerializer
 
@@ -255,6 +277,7 @@ class OrderItemListView(ListAPIView):
         return queryset.distinct()
 
 
+@log_view_performance
 class OrderItemDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = OrderItemSerializer
     permission_classes = [IsAuthenticated,CanUpdateOrDeleteItems]
