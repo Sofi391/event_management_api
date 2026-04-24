@@ -163,7 +163,6 @@ class OrderItem(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['user_order', 'ticket_type']),
-            models.Index(fields=['user_order__user', 'ticket_type__event']),
         ]
 
     def __str__(self):
