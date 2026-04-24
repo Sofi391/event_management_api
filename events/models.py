@@ -5,7 +5,7 @@ from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 import unidecode
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 
 
 # Create your models here.
@@ -159,7 +159,7 @@ class OrderItem(models.Model):
         ticket_type = TicketType.objects.select_for_update().get(pk=self.ticket_type.pk)
         
         if self.quantity > ticket_type.remaining_stock:
-            raise ValidationError("Not enough stock")
+            raise serializers.ValidationError("Not enough stock")
         
         ticket_type.remaining_stock -= self.quantity
         ticket_type.save(update_fields=['remaining_stock'])

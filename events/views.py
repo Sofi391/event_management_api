@@ -6,11 +6,10 @@ from .serializers import (EventSerializer, TagsSerializer, EventImageSerializer,
                           OrderItemSerializer, TicketTypeSerializer,PaymentStatusSerializer,
                           EventEditorSerializer,EventEditorDetailSerializer,
                           )
-from rest_framework import filters, viewsets
+from rest_framework import filters, viewsets, serializers
 from django.shortcuts import get_object_or_404
 from rest_framework.generics import ListAPIView, RetrieveUpdateDestroyAPIView, CreateAPIView, UpdateAPIView, \
     RetrieveAPIView, RetrieveUpdateAPIView
-from rest_framework import serializers
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
