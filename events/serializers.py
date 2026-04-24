@@ -45,14 +45,12 @@ class EventSerializer(serializers.ModelSerializer):
         return data
 
     def get_images(self, obj):
-        from .serializers import EventImageSerializer
         return EventImageSerializer(obj.images.all(), many=True).data
 
     def get_tag_names(self, obj):
         return [tag.name for tag in obj.tags.all()]
 
     def get_tickets(self, obj):
-        from .serializers import TicketTypeSerializer
         return TicketTypeSerializer(obj.tickets.all(), many=True).data
 
     def get_order_count(self,obj):
