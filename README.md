@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
-[![DRF](https://img.shields.io/badge/DRF-Django%20REST%20Framework-a30000?logo=django&logoColor=white)](https://www.django-rest-framework.org/)[![Docker](https://img.shields.io/badge/Docker-Containerized-blue)](https://www.docker.com/)
+[![DRF](https://img.shields.io/badge/DRF-Django%20REST%20Framework-a30000?logo=django&logoColor=white)](https://www.django-rest-framework.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Swagger](https://img.shields.io/badge/Swagger-UI-85EA2D?logo=swagger&logoColor=black)](https://task-management-api-ft4y.onrender.com/api/docs/)
 [![Performance](https://img.shields.io/badge/Performance-Optimized-green)](#)
