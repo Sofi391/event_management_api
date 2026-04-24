@@ -1,7 +1,7 @@
 from dataclasses import fields
 
 from django.utils import timezone
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 import unidecode
@@ -153,13 +153,18 @@ class OrderItem(models.Model):
     def __str__(self):
         return f"{self.user_order.user.username}-{self.ticket_type.name}"
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
-        if self.quantity > self.ticket_type.remaining_stock:
+        # Lock the ticket type row to prevent race conditions
+        ticket_type = TicketType.objects.select_for_update().get(pk=self.ticket_type.pk)
+        
+        if self.quantity > ticket_type.remaining_stock:
             raise ValidationError("Not enough stock")
-        self.ticket_type.remaining_stock -= self.quantity
-        self.ticket_type.save(update_fields=['remaining_stock'])
+        
+        ticket_type.remaining_stock -= self.quantity
+        ticket_type.save(update_fields=['remaining_stock'])
 
-        self.subtotal = self.quantity * self.ticket_type.price
+        self.subtotal = self.quantity * ticket_type.price
         super().save(*args,**kwargs)
 
         total = sum([item.subtotal for item in self.user_order.items.all()])

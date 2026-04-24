@@ -197,6 +197,8 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@eventmanagement.com')
+
 email = os.getenv("EMAIL")
 password = os.getenv("PASSWORD")
 # email backend
